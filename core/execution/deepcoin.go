@@ -13,7 +13,7 @@ import (
 
 func wsDataHandler(msg *DcResponseWSMsg, client Exchange) {
 	switch msg.Action {
-	case "PushMarketTrade":
+	case "PushMarketDataOverView":
 		if ss := strings.Split(msg.Index, "_"); len(ss) > 1 {
 			var r []MarketTrade
 			if err := json.Unmarshal(msg.Result, &r); err != nil {
@@ -45,6 +45,7 @@ func NewDcClient() *DcClient {
 }
 
 func (o *DcClient) UpdatePrice(ts string, price float64) {
+	fmt.Println("ts:", ts, "price:", price)
 	switch ts {
 	case "SPOT":
 		o.Tick.SpotPrice = price

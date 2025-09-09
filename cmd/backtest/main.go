@@ -32,7 +32,7 @@ func main() {
 			Action:      "1",
 			FilterValue: filterSpotValue,
 			LocalNo:     1,
-			TopicID:     "25",
+			TopicID:     "7",
 			ResumeNo:    -1,
 		},
 	}
@@ -42,6 +42,7 @@ func main() {
 	sub.SendTopicAction.FilterValue = filterSwapValue
 	go execution.RunPublicWS(context.TODO(), dc.WS_SWAP_ADDR, sub, cli)
 
+	select {}
 	for {
 		tick, err := cli.GetTicker(symbol)
 		if err != nil {

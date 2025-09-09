@@ -39,7 +39,7 @@ type MarketTrade struct {
 		ExchangeID   string  `json:"ExchangeID"`
 		InstrumentID string  `json:"InstrumentID"`
 		Direction    string  `json:"Direction"`
-		Price        float64 `json:"Price"`
+		Price        float64 `json:"LastPrice"`
 		Volume       float64 `json:"Volume"`
 		TradeTime    int     `json:"TradeTime"`
 	} `json:"data"`
@@ -98,7 +98,7 @@ func RunPublicWS(ctx context.Context, url string, sub DcSubWSMsg, exc Exchange) 
 				fmt.Println("Unmarshal err:", err)
 				continue
 			}
-			//fmt.Println("msg:", m.Action, m.ErrorMsg, m.ChangeType)
+			//fmt.Println("msg:", m.Action, m.ErrorMsg)
 			if m.Action == "RecvTopicAction" && m.ErrorMsg != "Success" {
 				return errors.New(m.ErrorMsg)
 			}
