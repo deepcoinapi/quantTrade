@@ -1,70 +1,29 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"quantTrade/core/execution"
-	"quantTrade/core/execution/dc"
+	"quantTrade/core/data"
 	"quantTrade/core/strategy/arbitrage"
-	"strings"
-	"time"
 )
 
 func main() {
-	cli := execution.NewDcClient()
-
-	symbol := "BTC-USDT"
 	strat := &arbitrage.FutureSpotArbitrage{}
 	strat.Init(map[string]interface{}{
 		"symbol":    "BTC-USDT",
-		"threshold": 0.005, // 0.5% 差价
+		"threshold": 0.005,
 	})
 
-	filterSpotValue := "DeepCoin_" + strings.ReplaceAll(symbol, "-", "/")
-	sub := execution.DcSubWSMsg{
-		SendTopicAction: struct {
-			Action      string
-			FilterValue string
-			LocalNo     int
-			TopicID     string
-			ResumeNo    int
-		}{
-			Action:      "1",
-			FilterValue: filterSpotValue,
-			LocalNo:     1,
-			TopicID:     "7",
-			ResumeNo:    -1,
-		},
+	ticks := []data.Tick{
+		{Symbol: "BTC-USDT", SpotPrice: 20000, FuturePrice: 20150},
+		{Symbol: "BTC-USDT", SpotPrice: 20050, FuturePrice: 20100},
+		{Symbol: "BTC-USDT", SpotPrice: 20100, FuturePrice: 20105},
+		{Symbol: "BTC-USDT", SpotPrice: 20200, FuturePrice: 20210},
+		{Symbol: "BTC-USDT", SpotPrice: 20300, FuturePrice: 20300}, // 差价消失，平仓
 	}
-	go execution.RunPublicWS(context.TODO(), dc.WS_SPOT_ADDR, sub, cli)
 
-	filterSwapValue := "DeepCoin_" + strings.ReplaceAll(symbol, "-", "")
-	sub.SendTopicAction.FilterValue = filterSwapValue
-	go execution.RunPublicWS(context.TODO(), dc.WS_SWAP_ADDR, sub, cli)
-
-	select {}
-	for {
-		tick, err := cli.GetTicker(symbol)
-		if err != nil {
-			fmt.Println("获取行情失败:", err)
-			time.Sleep(2 * time.Second)
-			continue
-		}
-
+	for _, tick := range ticks {
 		signals := strat.OnTick(tick)
 		for _, sig := range signals {
-			isFuture := false
-			if sig.Action == "SELL_SWAP" || sig.Action == "BUY_SWAP" {
-				isFuture = true
-			}
-			order, err := cli.PlaceOrder(sig.Symbol, sig.Action, dc.ORDER_TYPE_MARKET, sig.Price, sig.Size, isFuture)
-			if err != nil {
-				fmt.Println("下单失败:", err)
-			} else {
-				fmt.Println("下单成功:", order)
-			}
+			println(sig.Action, sig.Symbol, sig.Price, sig.Size)
 		}
-
-		time.Sleep(5 * time.Second) // 每 5 秒轮询
 	}
 }
