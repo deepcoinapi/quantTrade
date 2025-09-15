@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"quantTrade/core/data"
+	"strconv"
 )
 
 type resp struct {
@@ -128,6 +130,44 @@ func CancelOrder(cancelOrder CancelOrderRequest, s *Sign) error {
 				return nil
 			} else {
 				return errors.New(m.Msg)
+			}
+		}
+	}
+}
+
+func GetMarketCandles(symbol, bar, n string, s *Sign) ([]data.Bar, error) {
+	//requestURL := fmt.Sprintf(s.Url+MARKET_CANDLES+"?instId=%s&bar=%s&limit=%s", symbol, bar, n)
+	requestPath := fmt.Sprintf(MARKET_CANDLES+"?instId=%s&bar=%s&limit=%s", symbol, bar, n)
+	if body, err := DoHttp(s.Url+requestPath, HTTP_METHOD_GET, requestPath, "", nil); err != nil {
+		return nil, err
+	} else {
+		var m resp
+		if err := json.Unmarshal(body, &m); err != nil {
+			return nil, err
+		} else {
+			var ks [][]string
+			if err := json.Unmarshal(m.Data, &ks); err != nil {
+				return nil, err
+			} else {
+				klines := make([]data.Bar, 0, 20)
+				for _, k := range ks {
+					fmt.Println("kline:", k)
+					ts, _ := strconv.ParseInt(k[0], 10, 64)
+					open, _ := strconv.ParseFloat(k[1], 64)
+					high, _ := strconv.ParseFloat(k[2], 64)
+					low, _ := strconv.ParseFloat(k[3], 64)
+					clo, _ := strconv.ParseFloat(k[4], 64)
+					v, _ := strconv.ParseFloat(k[5], 64)
+					klines = append(klines, data.Bar{
+						Ts:     ts / 1000,
+						Open:   open,
+						High:   high,
+						Low:    low,
+						Close:  clo,
+						Volume: v,
+					})
+				}
+				return klines, nil
 			}
 		}
 	}

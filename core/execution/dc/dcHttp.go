@@ -70,17 +70,19 @@ func DoHttp(requestURL string, requestMethod string, requestPath string, request
 		return nil, err
 	}
 
-	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
-	sign, err := DoSign(timestamp, requestMethod, requestPath, requestBody, env.SecretKey)
-	if err != nil {
-		fmt.Println(fmt.Sprintf("sign error:%v", err))
-		return nil, err
-	}
+	if env != nil {
+		timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
+		sign, err := DoSign(timestamp, requestMethod, requestPath, requestBody, env.SecretKey)
+		if err != nil {
+			fmt.Println(fmt.Sprintf("sign error:%v", err))
+			return nil, err
+		}
 
-	req.Header.Set("DC-ACCESS-KEY", env.Key)
-	req.Header.Set("DC-ACCESS-SIGN", sign)
-	req.Header.Set("DC-ACCESS-TIMESTAMP", timestamp)
-	req.Header.Set("DC-ACCESS-PASSPHRASE", env.Passphrase)
+		req.Header.Set("DC-ACCESS-KEY", env.Key)
+		req.Header.Set("DC-ACCESS-SIGN", sign)
+		req.Header.Set("DC-ACCESS-TIMESTAMP", timestamp)
+		req.Header.Set("DC-ACCESS-PASSPHRASE", env.Passphrase)
+	}
 
 	//fmt.Println(fmt.Sprintf("request: %v", req))
 

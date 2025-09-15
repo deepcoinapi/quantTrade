@@ -45,6 +45,24 @@ type MarketTrade struct {
 	} `json:"data"`
 }
 
+type Marketkline struct {
+	Table string `json:"table"`
+	Data  struct {
+		ExchangeID   string  `json:"ExchangeID"`
+		InstrumentID string  `json:"InstrumentID"`
+		PeriodID     string  `json:"PeriodID"`
+		BeginTime    int64   `json:"BeginTime"`
+		OpenPrice    float64 `json:"OpenPrice"`
+		ClosePrice   float64 `json:"ClosePrice"`
+		HighestPrice float64 `json:"HighestPrice"`
+		LowestPrice  float64 `json:"LowestPrice"`
+		Volume       float64 `json:"Volume"`
+		Turnover     float64 `json:"Turnover"`
+		TimeZone     int     `json:"TimeZone"`
+		UpdateTime   int     `json:"UpdateTime"`
+	} `json:"data"`
+}
+
 // ob 结构体
 type DcResponseWSMsg struct {
 	Action     string          `json:"action"`
@@ -84,7 +102,7 @@ func RunPublicWS(ctx context.Context, url string, sub DcSubWSMsg, exc Exchange) 
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			_ = c.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(3*time.Second))
+			_ = c.WriteMessage(websocket.TextMessage, []byte("ping"))
 		default:
 			c.SetReadDeadline(time.Now().Add(30 * time.Second))
 			_, msg, err := c.ReadMessage()
@@ -93,6 +111,9 @@ func RunPublicWS(ctx context.Context, url string, sub DcSubWSMsg, exc Exchange) 
 				return err
 			}
 			//fmt.Println("msg:", string(msg))
+			if string(msg) == "pong" {
+				continue
+			}
 			m := &DcResponseWSMsg{}
 			if err := json.Unmarshal(msg, m); err != nil {
 				fmt.Println("Unmarshal err:", err)

@@ -7,6 +7,7 @@ type Tick struct {
 }
 
 type Bar struct {
+	Ts     int64
 	Symbol string
 	Open   float64
 	High   float64

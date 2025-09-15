@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"quantTrade/core/data"
 	"quantTrade/core/execution/dc"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -29,18 +30,39 @@ func wsDataHandler(msg *DcResponseWSMsg, client Exchange) {
 				}
 			}
 		}
+	case "PushKLine":
+		if ss := strings.Split(msg.Index, "_"); len(ss) > 1 {
+			var r []Marketkline
+			if err := json.Unmarshal(msg.Result, &r); err != nil {
+				fmt.Println("Unmarshal err:", err)
+			} else {
+				if len(r) > 0 {
+					fmt.Println("====kline:", r[0].Data)
+					client.UpdateBar(data.Bar{
+						Ts:     r[0].Data.BeginTime,
+						High:   r[0].Data.HighestPrice,
+						Low:    r[0].Data.LowestPrice,
+						Open:   r[0].Data.OpenPrice,
+						Close:  r[0].Data.ClosePrice,
+						Volume: r[0].Data.Volume,
+					})
+				}
+			}
+		}
 	}
 }
 
 type DcClient struct {
-	Sign *dc.Sign
-	Tick data.Tick
+	Sign    *dc.Sign
+	Tick    data.Tick
+	BarChan chan data.Bar
 }
 
 func NewDcClient() *DcClient {
 	sign := dc.NewSign()
 	return &DcClient{
-		Sign: sign,
+		Sign:    sign,
+		BarChan: make(chan data.Bar),
 	}
 }
 
@@ -122,4 +144,23 @@ func (o *DcClient) CancelOrder(orderID, symbol string) error {
 		return err
 	}
 	return nil
+}
+
+func (o *DcClient) GetKlines(period, symbol, limit string) ([]data.Bar, error) {
+	if d, err := dc.GetMarketCandles(symbol, period, limit, o.Sign); err != nil {
+		return nil, err
+	} else {
+		//正序排列k线
+		sort.Slice(d, func(i, j int) bool {
+			return d[i].Ts < d[j].Ts
+		})
+		return d, nil
+	}
+}
+func (o *DcClient) UpdateBar(bar data.Bar) {
+	o.BarChan <- bar
+}
+
+func (o *DcClient) GetNewBar(symbol string) data.Bar {
+	return <-o.BarChan
 }
